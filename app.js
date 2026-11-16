@@ -707,10 +707,36 @@
   // when pointerup is cancelled while the finger moves to another key.
   // Operators and keys with long-press gestures still activate on pointerup.
   const earlyKeyPointers = new Set();
+  // Touch feedback calibrated from the recorded iOS calculator:
+  // 150ms minimum highlight plus 100ms CSS fade, no input processing delay.
+  const KEY_HIGHLIGHT_HOLD_MS = 150;
+  const activeKeyTouches = new Map();
+  const keyHighlightTimers = new Map();
+  function releaseKeyHighlight(e) {
+    const touch = activeKeyTouches.get(e.pointerId);
+    if (!touch) return;
+    activeKeyTouches.delete(e.pointerId);
+    const k = touch.key;
+    if ([...activeKeyTouches.values()].some((t) => t.key === k)) return;
+    const delay = Math.max(0, KEY_HIGHLIGHT_HOLD_MS - (performance.now() - touch.started));
+    const timer = setTimeout(() => {
+      if (![...activeKeyTouches.values()].some((t) => t.key === k)) {
+        k.classList.remove('pressed');
+      }
+      if (keyHighlightTimers.get(k) === timer) keyHighlightTimers.delete(k);
+    }, delay);
+    keyHighlightTimers.set(k, timer);
+  }
   keypad.addEventListener('pointerdown', (e) => {
     const k = e.target.closest('.key');
     if (!k) return;
     if (forcedDigitPointers.has(e.pointerId) || forceEntryComplete()) return;
+    const oldTimer = keyHighlightTimers.get(k);
+    if (oldTimer !== undefined) {
+      clearTimeout(oldTimer);
+      keyHighlightTimers.delete(k);
+    }
+    activeKeyTouches.set(e.pointerId, { key: k, started: performance.now() });
     k.classList.add('pressed');
     if (!secret.armed && (/^\d$/.test(k.dataset.key) || k.dataset.key === '=')) {
       earlyKeyPointers.add(e.pointerId);
@@ -718,14 +744,10 @@
       press(k.dataset.key);
     }
   });
-  const release = (e) => {
-    const k = e.target.closest && e.target.closest('.key');
-    if (k) k.classList.remove('pressed');
-  };
-  keypad.addEventListener('pointerup', release);
-  keypad.addEventListener('pointercancel', release);
-  keypad.addEventListener('pointerleave', release, true);
-  keypad.addEventListener('pointerout', release);
+  keypad.addEventListener('pointerup', releaseKeyHighlight);
+  keypad.addEventListener('pointercancel', releaseKeyHighlight);
+  keypad.addEventListener('pointerleave', releaseKeyHighlight, true);
+  keypad.addEventListener('pointerout', releaseKeyHighlight);
 
   let swallowClick = false;
   const lastPointerActivation = new Map();
