@@ -701,11 +701,20 @@
   });
 
   // ---------- Events ----------
+  // Register ordinary digits and equals on contact, avoiding lost rapid touches
+  // when pointerup is cancelled while the finger moves to another key.
+  // Operators and keys with long-press gestures still activate on pointerup.
+  const earlyKeyPointers = new Set();
   keypad.addEventListener('pointerdown', (e) => {
     const k = e.target.closest('.key');
     if (!k) return;
     if (forcedDigitPointers.has(e.pointerId) || forceEntryComplete()) return;
     k.classList.add('pressed');
+    if (!secret.armed && (/^\d$/.test(k.dataset.key) || k.dataset.key === '=')) {
+      earlyKeyPointers.add(e.pointerId);
+      rememberPointerActivation(k.dataset.key);
+      press(k.dataset.key);
+    }
   });
   const release = (e) => {
     const k = e.target.closest && e.target.closest('.key');
@@ -717,7 +726,10 @@
   keypad.addEventListener('pointerout', release);
 
   let swallowClick = false;
-  let lastPointerActivation = { key: null, at: 0 };
+  const lastPointerActivation = new Map();
+  function rememberPointerActivation(key) {
+    lastPointerActivation.set(key, performance.now());
+  }
   let negateConfigActive = false;
   keypad.addEventListener('click', (e) => {
     const k = e.target.closest('.key');
@@ -725,8 +737,8 @@
     if (swallowClick) { swallowClick = false; return; }
     // Mobile browsers synthesize a click after pointerup. Ignore only that
     // matching click; a later real tap on the same key must still work.
-    if (e.detail !== 0 && lastPointerActivation.key === k.dataset.key &&
-        performance.now() - lastPointerActivation.at < 700) return;
+    if (e.detail !== 0 &&
+        performance.now() - (lastPointerActivation.get(k.dataset.key) ?? -Infinity) < 700) return;
     press(k.dataset.key);
   });
 
@@ -735,20 +747,27 @@
   // The click listener above remains available for keyboard activation and older browsers.
   keypad.addEventListener('pointerup', (e) => {
     const k = e.target.closest && e.target.closest('.key');
+    if (earlyKeyPointers.delete(e.pointerId)) return;
     if (k && forcedDigitPointers.has(e.pointerId)) {
-      lastPointerActivation = { key: k.dataset.key, at: performance.now() };
+      rememberPointerActivation(k.dataset.key);
       return;
     }
     if (k === negateKey && negateConfigActive) {
       negateConfigActive = false;
-      lastPointerActivation = { key: k.dataset.key, at: performance.now() };
+      rememberPointerActivation(k.dataset.key);
       return;
     }
-    if (!k || swallowClick || opPeeking || (k === decimalKey && decimalPeeking) ||
+    if (!k || opPeeking || (k === decimalKey && decimalPeeking) ||
         (k === deleteKey && deleteResetFired)) return;
     press(k.dataset.key);
-    lastPointerActivation = { key: k.dataset.key, at: performance.now() };
+    rememberPointerActivation(k.dataset.key);
   });
+  document.addEventListener('pointerup', (e) => {
+    setTimeout(() => earlyKeyPointers.delete(e.pointerId), 0);
+  }, { capture: true });
+  document.addEventListener('pointercancel', (e) => {
+    earlyKeyPointers.delete(e.pointerId);
+  }, { capture: true });
 
   // Hold an operator key (target set, not armed): the display shows the number the
   // spectator would need to enter after that operator to reach the target. Releasing
