@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sumduo-v3';
+const CACHE_NAME = 'sumduo-v4';
 const ASSETS = ['./', './index.html', './style.css', './app.js', './manifest.webmanifest', './calc-icon.png'];
 
 self.addEventListener('install', (event) => {
