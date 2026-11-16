@@ -1,4 +1,4 @@
-const CACHE_NAME = 'calculadora-v1';
+const CACHE_NAME = 'sumduo-v2';
 const ASSETS = ['./', './index.html', './style.css', './app.js', './manifest.webmanifest', './calc-icon.png'];
 
 self.addEventListener('install', (event) => {
@@ -12,5 +12,5 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+  event.respondWith(caches.open(CACHE_NAME).then((cache) => cache.match(event.request)).then((cached) => cached || fetch(event.request)));
 });
