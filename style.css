@@ -125,8 +125,8 @@ button svg {
   font-weight: 400;
   line-height: 1;
   color: var(--white);
-  box-shadow: inset 0 0 0 1px var(--rim);
-  transition: background-color 0.28s ease-out, color 0.28s ease-out;
+  box-shadow: inset 0 0 0 1px var(--rim), inset 0 0 0 100px rgba(255, 255, 255, 0);
+  transition: box-shadow 0.1s linear, background-color 0.28s ease-out, color 0.28s ease-out;
 }
 .key.secret-count-hint::after {
   content: "";
@@ -145,14 +145,19 @@ button svg {
   width: calc(2 * var(--u));
   height: calc(2 * var(--u));
 }
-.key.num { background: linear-gradient(160deg, var(--num) 55%, var(--num-dark)); }
-.key.fn  { background: linear-gradient(160deg, var(--fn) 45%, var(--fn-dark)); }
-.key.op  { background: linear-gradient(180deg, var(--orange) 60%, var(--orange-dark)); }
+.key.num { background: linear-gradient(160deg, var(--num) 55%, var(--num-dark)); --tap-tint: rgba(255, 255, 255, 0.27); }
+.key.fn  { background: linear-gradient(160deg, var(--fn) 45%, var(--fn-dark)); --tap-tint: rgba(255, 255, 255, 0.27); }
+.key.op  { background: linear-gradient(180deg, var(--orange) 60%, var(--orange-dark)); --tap-tint: rgba(255, 255, 0, 0.46); }
 
-.key.pressed, .key.secret-feedback { transition: none; }
-.key.num.pressed, .key.num.secret-feedback { background: var(--num-press); }
-.key.fn.pressed, .key.fn.secret-feedback  { background: var(--fn-press); }
-.key.op.pressed, .key.op.secret-feedback  { background: var(--orange-press); }
+/* The tint stays behind button labels and fades smoothly after release. */
+.key.pressed {
+  transition: none;
+  box-shadow: inset 0 0 0 1px var(--rim), inset 0 0 0 100px var(--tap-tint);
+}
+.key.secret-feedback { transition: none; }
+.key.num.secret-feedback { background: var(--num-press); }
+.key.fn.secret-feedback  { background: var(--fn-press); }
+.key.op.secret-feedback  { background: var(--orange-press); }
 
 /* Text labels render slightly low relative to the reference; nudge them up */
 .key.num:not([data-key="negate"]), .key.fn[data-key="clear"] { padding-bottom: calc(0.8 * var(--u)); }
