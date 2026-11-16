@@ -15,6 +15,7 @@
   const minuteHand = document.getElementById('minuteHand');
   const decimalKey = document.querySelector('[data-key="."]');
   const digitKeys = Array.from(document.querySelectorAll('.key.num')).filter((k) => /^\d$/.test(k.dataset.key));
+  const signKeys = Array.from(document.querySelectorAll('.key.op')).filter((k) => k.dataset.key === '+' || k.dataset.key === '-');
 
   const MAX_DIGITS = 9;
   const BASE_FONT = 64;
@@ -44,6 +45,9 @@
     seq: '',        // characters to feed, e.g. "1234" or "12.5"
     idx: 0,
   };
+  let completedExpressions = 0;
+  let guidedOperator = null;
+  let guidedDigits = '';
 
   const newTrick = {
     active: false,
@@ -179,6 +183,7 @@
       : (pending() ? '' : lastExpr);
     clearKey.textContent = (entry !== null || pending() || newTrick.active) ? 'C' : 'AC';
     fitDisplay();
+    updateSecretCountHint();
   }
 
   function resetAll() {
@@ -190,6 +195,9 @@
     lastOp = null;
     lastOperand = null;
     lastExpr = '';
+    completedExpressions = 0;
+    guidedOperator = null;
+    guidedDigits = '';
     disarm();
     render();
   }
@@ -197,6 +205,10 @@
   // ---------- Input handlers ----------
   function inputDigit(d) {
     if (newTrick.ready) return;
+    if (!secret.armed && secret.mode === 'classic' && entry === null && !pending()) {
+      completedExpressions = 0;  // Typing a fresh number after = begins a new calculation.
+    }
+    if (!secret.armed) { guidedOperator = null; guidedDigits = ''; }
     if (newTrick.active) {
       if (entry === null) entry = d === '.' ? '0.' : d;
       else {
@@ -232,21 +244,24 @@
       startNewTrick();
       return;
     }
+    // After two completed calculations, one tap on the indicated sign arms the classic force.
+    // The old double-operator activation no longer exists.
+    const guidedTap = secret.mode === 'classic' && secret.target !== null &&
+      guidedOperator === op && guidedDigits !== '' && !pending() && entry === null;
+    const seq = guidedDigits;
+    guidedOperator = null;
+    guidedDigits = '';
     lastOp = null;
     lastExpr = '';
     const last = raw[raw.length - 1];
     if (entry === null && typeof last === 'string') {
-      // Operator pressed again with nothing typed in between: the same one arms the force.
-      if (last === op && secret.target !== null && !secret.armed) {
-        arm(op);
-        return;
-      }
       raw[raw.length - 1] = op;   // change the pending operator
     } else {
       raw.push(currentValue(), op);
     }
     entry = null;
     rebuild();
+    if (guidedTap) arm(op, seq);
     render();
   }
 
@@ -284,6 +299,7 @@
       return;
     }
     if (secret.armed) { finishForce(); return; }
+    const completedNow = pending();
     if (pending()) {
       const v = currentValue();
       lastOp = raw[raw.length - 1];
@@ -304,10 +320,17 @@
     raw = [];
     tokens = [];
     entry = null;
+    if (secret.mode === 'classic' && secret.target !== null && completedNow) {
+      completedExpressions = Math.min(2, completedExpressions + 1);
+    }
+    refreshGuidedOperator();
     render();
   }
 
   function inputNegate() {
+    completedExpressions = 0;
+    guidedOperator = null;
+    guidedDigits = '';
     if (entry !== null) {
       entry = entry[0] === '-' ? entry.slice(1) : '-' + entry;
     } else if (pending()) {
@@ -320,6 +343,9 @@
   }
 
   function inputPercent() {
+    completedExpressions = 0;
+    guidedOperator = null;
+    guidedDigits = '';
     const v = currentValue();
     const last = raw[raw.length - 1];
     let result;
@@ -336,6 +362,9 @@
 
   // C clears the number being typed; AC (or C with nothing typed) clears everything.
   function inputClear() {
+    completedExpressions = 0;
+    guidedOperator = null;
+    guidedDigits = '';
     if (newTrick.active || newTrick.ready) {
       cancelNewTrick();
       raw = [];
@@ -361,6 +390,9 @@
   // Deletes the last character of what's on screen: a digit of the number being typed,
   // a trailing operator of the expression, or a digit of a result (which becomes editable).
   function backspace() {
+    completedExpressions = 0;
+    guidedOperator = null;
+    guidedDigits = '';
     if (entry === null) {
       if (pending()) {
         raw.pop();                          // the trailing operator
@@ -414,10 +446,16 @@
   }
 
   function updateSecretCountHint() {
-    digitKeys.forEach((key) => key.classList.remove('secret-count-hint'));
-    if (!secret.armed || secret.started) return;
-    const count = (secret.seq.match(/\d/g) || []).length;
-    const key = digitKeys.find((candidate) => candidate.dataset.key === String(count));
+    digitKeys.concat(signKeys).forEach((key) => key.classList.remove('secret-count-hint'));
+    if (secret.armed) {
+      if (secret.started) return;
+      const count = (secret.seq.match(/\d/g) || []).length;
+      const key = digitKeys.find((candidate) => candidate.dataset.key === String(count));
+      if (key) key.classList.add('secret-count-hint');
+      return;
+    }
+    if (secret.mode !== 'classic' || secret.target === null || !guidedOperator) return;
+    const key = signKeys.find((candidate) => candidate.dataset.key === guidedOperator);
     if (key) key.classList.add('secret-count-hint');
   }
 
@@ -425,6 +463,9 @@
     if (Number.isNaN(n) || n === null) return clearTarget();
     secret.target = round9(n);
     secret.mode = mode === 'new' ? 'new' : 'classic';
+    completedExpressions = 0;
+    guidedOperator = null;
+    guidedDigits = '';
     localStorage.setItem(STORAGE_KEY, String(secret.target));
     localStorage.setItem(MODE_STORAGE_KEY, secret.mode);
     showTell();
@@ -433,6 +474,9 @@
   function clearTarget() {
     secret.target = null;
     secret.mode = null;
+    completedExpressions = 0;
+    guidedOperator = null;
+    guidedDigits = '';
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(MODE_STORAGE_KEY);
     showTell();
@@ -509,16 +553,34 @@
     return round9(solveOperand(prospectiveTokens(op), secret.target));
   }
 
-  function arm(op) {
-    let q = solveOperand(tokens, secret.target);
-    q = Math.abs(round9(q));
-    let seq = isFinite(q) ? String(q) : '0';
-    if (seq.includes('e')) seq = q.toFixed(8).replace(/\.?0+$/, '');
+  // The displayed operation must really reach the saved target.
+  // Never turn a negative required operand into a positive one.
+  function refreshGuidedOperator() {
+    guidedOperator = null;
+    guidedDigits = '';
+    if (secret.mode !== 'classic' || secret.target === null ||
+        secret.armed || completedExpressions < 2 ||
+        !Number.isFinite(shown) || !Number.isFinite(secret.target)) return;
+    const op = shown <= secret.target ? '+' : '-';
+    const q = round9(Math.abs(secret.target - shown));
+    const seq = String(q);
+    const digits = (seq.match(/\d/g) || []).length;
+    if (!Number.isFinite(q) || !/^\d+(?:\.\d+)?$/.test(seq) ||
+        digits > MAX_DIGITS || round9(apply(shown, op, q)) !== secret.target) return;
+    guidedOperator = op;
+    guidedDigits = seq;
+  }
+
+  function arm(op, seq) {
+    const q = Number(seq);
+    if (tokens[tokens.length - 1] !== op ||
+        !Number.isFinite(q) || round9(evalWith(tokens, q)) !== secret.target) return false;
     secret.seq = seq;
     secret.idx = 0;
     secret.started = false;
     secret.armed = true;
     showTell();
+    return true;
   }
 
   function feedForcedChar() {
