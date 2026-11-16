@@ -701,7 +701,7 @@
   keypad.addEventListener('pointerdown', (e) => {
     const k = e.target.closest('.key');
     if (!k) return;
-    if (forcedDigitPointers.has(e.pointerId)) return;
+    if (forcedDigitPointers.has(e.pointerId) || forceEntryComplete()) return;
     k.classList.add('pressed');
   });
   const release = (e) => {
