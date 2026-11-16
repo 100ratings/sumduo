@@ -213,4 +213,42 @@ button svg {
 .keypad {
   transform: translateY(calc(22 * var(--u)));
 }
-
+/* Compact portrait adaptation for iPhone 7 / 7 Plus / SE and short browser windows.
+   Phones with taller displays retain their existing layout unchanged. */
+@media (orientation: portrait) and (max-height: 760px) and (min-aspect-ratio: 1/2) {
+  :root {
+    /* dvh follows the visible viewport; vh is a fallback for older Safari. */
+    --compact-vh: 100vh;
+    --compact-vh: 100dvh;
+    --compact-top: clamp(
+      calc(var(--safe-top) + 205 * var(--u)),
+      calc(var(--compact-vh) - 5 * var(--btn) - 4 * var(--gap-y) - 12px),
+      calc(var(--safe-top) + 230 * var(--u))
+    );
+    --compact-btn: min(
+      var(--btn),
+      calc((var(--compact-vh) - var(--compact-top) - 4 * var(--gap-y) - 12px) / 5)
+    );
+  }
+  .keypad {
+    left: 50%;
+    right: auto;
+    top: var(--compact-top);
+    width: calc(4 * var(--compact-btn) + 3 * var(--gap-x));
+    grid-template-columns: repeat(4, var(--compact-btn));
+    grid-auto-rows: var(--compact-btn);
+    transform: translateX(-50%);
+  }
+  .key {
+    height: var(--compact-btn);
+    font-size: min(var(--label-size), calc(var(--compact-btn) * 0.42));
+  }
+  .expr {
+    top: calc(var(--compact-top) - 124 * var(--u));
+    transform: none;
+  }
+  .display {
+    top: calc(var(--compact-top) - 80 * var(--u));
+    transform: none;
+  }
+}
