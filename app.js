@@ -58,6 +58,7 @@
   };
   let decimalPeekTimer = null;
   let decimalPeeking = false;
+  const decimalPeekedPointers = new Set();
 
   // ---------- Helpers ----------
   const PREC = { '+': 1, '-': 1, '*': 2, '/': 2 };
@@ -181,7 +182,8 @@
     exprTextEl.textContent = newTrick.ready
       ? formatNumber(newTrick.base) + '+' + formatNumber(newTrick.spectator)
       : (pending() ? '' : lastExpr);
-    clearKey.textContent = (entry !== null || pending() || newTrick.active) ? 'C' : 'AC';
+    clearKey.textContent = (entry !== null || pending() || newTrick.active ||
+      (secret.mode === 'new' && secret.target !== null)) ? 'C' : 'AC';
     fitDisplay();
     updateSecretCountHint();
   }
@@ -748,6 +750,12 @@
   keypad.addEventListener('pointerup', (e) => {
     const k = e.target.closest && e.target.closest('.key');
     if (earlyKeyPointers.delete(e.pointerId)) return;
+    // The decimal key already restored its peek on the target's pointerup.
+    // Consume that same gesture before the keypad can insert a decimal point.
+    if (decimalPeekedPointers.delete(e.pointerId)) {
+      rememberPointerActivation('.');
+      return;
+    }
     if (k && forcedDigitPointers.has(e.pointerId)) {
       rememberPointerActivation(k.dataset.key);
       return;
@@ -763,10 +771,14 @@
     rememberPointerActivation(k.dataset.key);
   });
   document.addEventListener('pointerup', (e) => {
-    setTimeout(() => earlyKeyPointers.delete(e.pointerId), 0);
+    setTimeout(() => {
+      earlyKeyPointers.delete(e.pointerId);
+      decimalPeekedPointers.delete(e.pointerId);
+    }, 0);
   }, { capture: true });
   document.addEventListener('pointercancel', (e) => {
     earlyKeyPointers.delete(e.pointerId);
+    decimalPeekedPointers.delete(e.pointerId);
   }, { capture: true });
 
   // Hold an operator key (target set, not armed): the display shows the number the
@@ -800,10 +812,12 @@
 
   // Long-pressing the decimal key reveals the configured number; a short press
   // remains the normal decimal-point input.
-  decimalKey.addEventListener('pointerdown', () => {
+  decimalKey.addEventListener('pointerdown', (e) => {
     clearTimeout(decimalPeekTimer);
+    const pointerId = e.pointerId;
     decimalPeekTimer = setTimeout(() => {
       if (secret.target === null || secret.armed) return;
+      decimalPeekedPointers.add(pointerId);
       decimalPeeking = true;
       textEl.textContent = formatNumber(secret.target);
       fitText(textEl, displayEl);
