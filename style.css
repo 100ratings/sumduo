@@ -140,6 +140,11 @@ button svg {
   transform: translateX(-50%);
   pointer-events: none;
 }
+/* Operation hint stays legible; digit-count hint remains one pixel. */
+.key.op.secret-count-hint::after {
+  width: calc(2 * var(--u));
+  height: calc(2 * var(--u));
+}
 .key.num { background: linear-gradient(160deg, var(--num) 55%, var(--num-dark)); }
 .key.fn  { background: linear-gradient(160deg, var(--fn) 45%, var(--fn-dark)); }
 .key.op  { background: linear-gradient(180deg, var(--orange) 60%, var(--orange-dark)); }
