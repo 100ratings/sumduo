@@ -369,7 +369,11 @@
         render();
         return;
       }
-      if (shown === 0) return;
+      // Editing a completed result must immediately clear its previous expression.
+      lastExpr = '';
+      lastOp = null;
+      lastOperand = null;
+      if (shown === 0) { render(); return; }
       entry = toEntry(shown);
       if (entry === null) { shown = 0; render(); return; }
     }
