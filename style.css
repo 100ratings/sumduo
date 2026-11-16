@@ -133,8 +133,8 @@ button svg {
   position: absolute;
   left: 50%;
   bottom: 19%;
-  width: calc(2 * var(--u));
-  height: calc(2 * var(--u));
+  width: calc(1 * var(--u));
+  height: calc(1 * var(--u));
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.88);
   transform: translateX(-50%);
