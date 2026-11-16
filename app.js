@@ -244,24 +244,27 @@
       startNewTrick();
       return;
     }
-    // After two completed calculations, one tap on the indicated sign arms the classic force.
-    // The old double-operator activation no longer exists.
+    // Keep the guide visible if a different operator was tapped by mistake.
+    // The correct sign can still replace that pending operator and arm the force.
+    const last = raw[raw.length - 1];
+    const replacePendingOp = entry === null && typeof last === 'string';
     const guidedTap = secret.mode === 'classic' && secret.target !== null &&
-      guidedOperator === op && guidedDigits !== '' && !pending() && entry === null;
+      guidedOperator === op && guidedDigits !== '' && entry === null &&
+      (!pending() || replacePendingOp);
     const seq = guidedDigits;
-    guidedOperator = null;
-    guidedDigits = '';
     lastOp = null;
     lastExpr = '';
-    const last = raw[raw.length - 1];
-    if (entry === null && typeof last === 'string') {
+    if (replacePendingOp) {
       raw[raw.length - 1] = op;   // change the pending operator
     } else {
       raw.push(currentValue(), op);
     }
     entry = null;
     rebuild();
-    if (guidedTap) arm(op, seq);
+    if (guidedTap && arm(op, seq)) {
+      guidedOperator = null;
+      guidedDigits = '';
+    }
     render();
   }
 
