@@ -147,7 +147,7 @@ button svg {
 }
 .key.num { background: linear-gradient(160deg, var(--num) 55%, var(--num-dark)); --tap-tint: rgba(255, 255, 255, 0.27); }
 .key.fn  { background: linear-gradient(160deg, var(--fn) 45%, var(--fn-dark)); --tap-tint: rgba(255, 255, 255, 0.27); }
-.key.op  { background: linear-gradient(180deg, var(--orange) 60%, var(--orange-dark)); --tap-tint: rgba(255, 255, 0, 0.46); }
+.key.op  { background: linear-gradient(180deg, var(--orange) 60%, var(--orange-dark)); --tap-tint: rgba(255, 255, 0, 0.50); }
 
 /* The tint stays behind button labels and fades smoothly after release. */
 .key.pressed {
