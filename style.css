@@ -225,11 +225,8 @@ button svg {
     /* dvh follows the visible viewport; vh is a fallback for older Safari. */
     --compact-vh: 100vh;
     --compact-vh: 100dvh;
-    --compact-top: clamp(
-      calc(var(--safe-top) + 205 * var(--u)),
-      calc(var(--compact-vh) - 5 * var(--btn) - 4 * var(--gap-y) - 12px),
-      calc(var(--safe-top) + 230 * var(--u))
-    );
+    /* Anchor to portrait width and status bar, never a stale dvh after rotation. */
+    --compact-top: calc(var(--safe-top) + 212 * var(--u));
     --compact-btn: min(
       var(--btn),
       calc((var(--compact-vh) - var(--compact-top) - 4 * var(--gap-y) - 12px) / 5)
