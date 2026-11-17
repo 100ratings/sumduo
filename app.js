@@ -35,6 +35,7 @@
   let lastOp = null;       // for repeated "="
   let lastOperand = null;
   let lastExpr = '';       // grey line above a result
+  let typedSinceResult = false; // C only after a digit has actually been entered
 
   // ---------- Secret force state ----------
   const secret = {
@@ -182,13 +183,14 @@
     exprTextEl.textContent = newTrick.ready
       ? formatNumber(newTrick.base) + '+' + formatNumber(newTrick.spectator)
       : (pending() ? '' : lastExpr);
-    clearKey.textContent = (entry !== null || pending() || newTrick.active ||
+    clearKey.textContent = (typedSinceResult || newTrick.active ||
       (secret.mode === 'new' && secret.target !== null)) ? 'C' : 'AC';
     fitDisplay();
     updateSecretCountHint();
   }
 
   function resetAll() {
+    typedSinceResult = false;
     cancelNewTrick();
     raw = [];
     tokens = [];
@@ -221,6 +223,7 @@
         else entry += d;
       }
       newTrick.spectator = parseFloat(entry) || 0;
+      typedSinceResult = true;
       render();
       return;
     }
@@ -235,6 +238,7 @@
       else if (entry === '-0' && d !== '.') entry = '-' + d;
       else entry += d;
     }
+    typedSinceResult = true;
     render();
   }
 
@@ -286,6 +290,7 @@
       lastExpr = expression;
       lastOp = null;
       lastOperand = null;
+      typedSinceResult = false;
       render();
       return;
     }
@@ -300,6 +305,7 @@
       lastOperand = null;
       clearTarget();
       cancelNewTrick();
+      typedSinceResult = false;
       render();
       return;
     }
@@ -329,6 +335,7 @@
       completedExpressions = Math.min(2, completedExpressions + 1);
     }
     refreshGuidedOperator();
+    typedSinceResult = false;
     render();
   }
 
@@ -367,6 +374,7 @@
 
   // C clears the number being typed; AC (or C with nothing typed) clears everything.
   function inputClear() {
+    typedSinceResult = false;
     completedExpressions = 0;
     guidedOperator = null;
     guidedDigits = '';
@@ -496,6 +504,7 @@
   }
 
   function startNewTrick() {
+    typedSinceResult = false;
     cancelNewTrick();
     newTrick.active = true;
     newTrick.base = secret.target;
@@ -611,6 +620,7 @@
   }
 
   function finishForce() {
+    typedSinceResult = false;
     const t = secret.target;
     lastExpr = bigText();   // reads like a genuine sum, e.g. "25×40"
     raw = [];
