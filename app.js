@@ -19,6 +19,11 @@
   const hintDecrease = document.getElementById('hintDecrease');
   const hintIncrease = document.getElementById('hintIncrease');
   const hintClose = document.getElementById('hintClose');
+  const hintColorPicker = document.getElementById('hintColorPicker');
+  const hintEyedropper = document.getElementById('hintEyedropper');
+  const hintHex = document.getElementById('hintHex');
+  const hintColorHelp = document.getElementById('hintColorHelp');
+  const hintSwatches = Array.from(document.querySelectorAll('[data-hint-color]'));
   const decimalKey = document.querySelector('[data-key="."]');
   const digitKeys = Array.from(document.querySelectorAll('.key.num')).filter((k) => /^\d$/.test(k.dataset.key));
   const signKeys = Array.from(document.querySelectorAll('.key.op')).filter((k) => k.dataset.key === '+' || k.dataset.key === '-');
@@ -30,15 +35,27 @@
   const STORAGE_KEY = 'calc.target';
   const MODE_STORAGE_KEY = 'calc.mode';
   const HINT_SIZE_STORAGE_KEY = 'calc.hintSize';
+  const HINT_COLOR_STORAGE_KEY = 'calc.hintColor';
   const HINT_SETTINGS_HOLD_MS = 3000;
   const HINT_SIZE_MIN = 1;
   const HINT_SIZE_MAX = 12;
   let hintSize = 1;
-  try {
-    const stored = Number(localStorage.getItem(HINT_SIZE_STORAGE_KEY));
-    if (Number.isInteger(stored) && stored >= HINT_SIZE_MIN && stored <= HINT_SIZE_MAX) {
-      hintSize = stored;
+  let hintColor = '#515151';
+
+  function normalizeHintHex(value) {
+    const raw = String(value || '').trim().replace(/^#/, '');
+    if (/^[0-9a-f]{3}$/i.test(raw)) {
+      return '#' + raw.split('').map((ch) => ch + ch).join('').toUpperCase();
     }
+    return /^[0-9a-f]{6}$/i.test(raw) ? '#' + raw.toUpperCase() : null;
+  }
+
+  try {
+    const storedSize = Number(localStorage.getItem(HINT_SIZE_STORAGE_KEY));
+    if (Number.isInteger(storedSize) && storedSize >= HINT_SIZE_MIN && storedSize <= HINT_SIZE_MAX) {
+      hintSize = storedSize;
+    }
+    hintColor = normalizeHintHex(localStorage.getItem(HINT_COLOR_STORAGE_KEY)) || hintColor;
   } catch (_error) { /* Private browsing can disable localStorage. */ }
 
   function renderHintSize() {
@@ -52,11 +69,73 @@
     try { localStorage.setItem(HINT_SIZE_STORAGE_KEY, String(hintSize)); } catch (_error) {}
     renderHintSize();
   }
+
+  function renderHintColor(updateHex = true) {
+    document.documentElement.style.setProperty('--hint-color', hintColor);
+    hintColorPicker.value = hintColor;
+    if (updateHex) hintHex.value = hintColor;
+    hintHex.classList.remove('invalid');
+    hintSwatches.forEach((swatch) => {
+      swatch.setAttribute('aria-pressed', String(swatch.dataset.hintColor.toUpperCase() === hintColor));
+    });
+  }
+  function setHintColor(input, updateHex = true) {
+    const normalized = normalizeHintHex(input);
+    if (!normalized) return false;
+    hintColor = normalized;
+    try { localStorage.setItem(HINT_COLOR_STORAGE_KEY, hintColor); } catch (_error) {}
+    hintColorHelp.textContent = '';
+    renderHintColor(updateHex);
+    return true;
+  }
+  function commitHintHex() {
+    if (!setHintColor(hintHex.value)) {
+      hintHex.value = hintColor;
+      hintHex.classList.remove('invalid');
+    }
+  }
+
+  hintSwatches.forEach((swatch) => {
+    swatch.addEventListener('click', () => setHintColor(swatch.dataset.hintColor));
+  });
+  hintColorPicker.addEventListener('input', () => setHintColor(hintColorPicker.value));
+  hintColorPicker.addEventListener('change', () => setHintColor(hintColorPicker.value));
+  hintHex.addEventListener('input', () => {
+    if (normalizeHintHex(hintHex.value)) {
+      setHintColor(hintHex.value, false);
+    } else {
+      hintHex.classList.toggle('invalid', hintHex.value.trim().length >= 7);
+    }
+  });
+  hintHex.addEventListener('change', commitHintHex);
+  hintHex.addEventListener('blur', commitHintHex);
+  hintHex.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); hintHex.blur(); }
+  });
+
+  // Safari iOS exposes the eyedropper through its native color picker, not
+  // the desktop EyeDropper API. Use the native picker when that API is absent.
+  hintEyedropper.addEventListener('click', async () => {
+    if (typeof window.EyeDropper === 'function') {
+      try {
+        const selected = await new window.EyeDropper().open();
+        if (selected && selected.sRGBHex) setHintColor(selected.sRGBHex);
+      } catch (error) {
+        if (error.name !== 'AbortError') hintColorHelp.textContent = 'Não foi possível usar o conta-gotas';
+      }
+    } else {
+      hintColorHelp.textContent = 'Use o conta-gotas do seletor nativo, se disponível';
+      hintColorPicker.click();
+    }
+  });
+
   function openHintSettings() {
     hintSettings.hidden = false;
+    hintColorHelp.textContent = '';
     hintClose.focus();
   }
   function closeHintSettings() {
+    commitHintHex();
     hintSettings.hidden = true;
     multiplyKey.blur();
   }
@@ -1103,6 +1182,7 @@
   }
 
   renderHintSize();
+  renderHintColor();
   loadTarget();
   render();
 
