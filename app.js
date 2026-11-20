@@ -862,14 +862,13 @@
     decimalPeekedPointers.delete(e.pointerId);
   }, { capture: true });
 
-  // Hold an operator key (target set, not armed): the display shows the number the
-  // spectator would need to enter after that operator to reach the target. Releasing
-  // restores the display and does not press the operator.
+  // Hold +, - or / (target set, not armed) to preview the needed number.
+  // The multiply key is reserved for the 3-second dot-size settings.
   let opPeekTimer = null;
   let opPeeking = false;
   keypad.addEventListener('pointerdown', (e) => {
     const k = e.target.closest('.key.op');
-    if (!k || !PREC[k.dataset.key] || secret.target === null || secret.armed) return;
+    if (!k || k === multiplyKey || !PREC[k.dataset.key] || secret.target === null || secret.armed) return;
     const op = k.dataset.key;
     clearTimeout(opPeekTimer);
     opPeekTimer = setTimeout(() => {
@@ -891,8 +890,8 @@
   keypad.addEventListener('pointercancel', endOpPeek);
   keypad.addEventListener('pointerleave', endOpPeek, true);
 
-// The orange multiply key keeps short-tap multiplication and its original
-  // 700ms operator peek. Holding for a full 3s opens dot-size settings instead.
+// The multiply key keeps regular multiplication on a tap, has no 700ms preview,
+  // and opens dot-size settings only after 3 seconds.
   let multiplySettingsTimer = null;
   multiplyKey.addEventListener('pointerdown', (e) => {
     clearTimeout(multiplySettingsTimer);
