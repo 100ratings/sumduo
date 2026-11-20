@@ -441,7 +441,7 @@ button svg {
   font-size: 16px;
   font-weight: 600;
 }
-/* Color swatches, native iOS color picker / eyedropper and editable HEX input. */
+/* Color swatches, native iOS color picker and editable HEX input. */
 .hint-settings-color-options {
   margin-top: 8px;
   text-align: left;
@@ -476,8 +476,7 @@ button svg {
   align-items: stretch;
   margin-bottom: 12px;
 }
-.hint-settings-color-label,
-.hint-settings-eyedropper {
+.hint-settings-color-label {
   display: flex;
   flex: 1;
   min-width: 0;
