@@ -15,6 +15,8 @@
   --top: #202020;
   --white: #ffffff;
   --rim: rgba(255, 255, 255, 0.16);
+  --hint-size: 1px;
+  --hint-color: #515151;
 
   --pad-x: calc(16 * var(--u));
   --gap-x: calc(8 * var(--u));
@@ -133,17 +135,17 @@ button svg {
   position: absolute;
   left: 50%;
   bottom: 19%;
-  width: calc(1 * var(--u));
-  height: calc(1 * var(--u));
+  width: var(--hint-size);
+  height: var(--hint-size);
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.88);
+  background: var(--hint-color);
   transform: translateX(-50%);
   pointer-events: none;
 }
 /* Operation hint stays legible; digit-count hint remains one pixel. */
 .key.op.secret-count-hint::after {
-  width: calc(2 * var(--u));
-  height: calc(2 * var(--u));
+  width: var(--hint-size);
+  height: var(--hint-size);
 }
 .key.num { background: linear-gradient(160deg, var(--num) 55%, var(--num-dark)); --tap-tint: rgba(255, 255, 255, 0.27); }
 .key.fn  { background: linear-gradient(160deg, var(--fn) 45%, var(--fn-dark)); --tap-tint: rgba(255, 255, 255, 0.27); }
@@ -303,8 +305,8 @@ button svg {
     padding-bottom: 0 !important;
   }
   .key[data-key="bs"] svg { transform: translateX(-1px); }
-  .key.secret-count-hint::after { width: 1px; height: 1px; bottom: 15%; }
-  .key.op.secret-count-hint::after { width: 2px; height: 2px; }
+  .key.secret-count-hint::after { width: var(--hint-size); height: var(--hint-size); bottom: 15%; }
+  .key.op.secret-count-hint::after { width: var(--hint-size); height: var(--hint-size); }
   .display {
     top: calc(var(--land-top) - 72px);
     bottom: auto;
@@ -355,4 +357,87 @@ button svg {
   .expr { display: none; }
   .display { top: calc(var(--land-top) - 50px); height: 40px; }
   .display-text { font-size: clamp(26px, 11vh, 32px); }
+}
+/* Discreet dot-size settings, opened by holding the orange multiplication key. */
+.hint-settings[hidden] { display: none; }
+.hint-settings {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px));
+  background: rgba(0, 0, 0, 0.78);
+}
+.hint-settings-panel {
+  width: min(310px, 100%);
+  max-height: 100%;
+  overflow-y: auto;
+  padding: 20px 20px 18px;
+  border-radius: 20px;
+  background: #202023;
+  box-shadow: inset 0 0 0 1px #3a3a3f, 0 16px 50px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+.hint-settings-panel h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.25px;
+}
+.hint-settings-description {
+  margin: 5px 0 16px;
+  font-size: 13px;
+  color: #a7a7aa;
+}
+.hint-settings-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 14px;
+}
+.hint-settings-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 53px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: #39393e;
+  font-size: 28px;
+  line-height: 1;
+  color: #fff;
+}
+.hint-settings-step:disabled { opacity: 0.28; }
+.hint-settings-value {
+  width: 80px;
+  font-size: 21px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.hint-settings-preview {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 30px;
+  margin-top: 10px;
+}
+.hint-settings-preview-dot {
+  width: var(--hint-size);
+  height: var(--hint-size);
+  border-radius: 50%;
+  background: var(--hint-color);
+}
+.hint-settings-done {
+  display: block;
+  width: 100%;
+  min-height: 42px;
+  margin-top: 10px;
+  border-radius: 12px;
+  background: #3b3b42;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
 }
