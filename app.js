@@ -9,10 +9,16 @@
   const keypad = document.getElementById('keypad');
   const clearKey = document.getElementById('clearKey');
   const deleteKey = document.querySelector('[data-key="bs"]');
+  const multiplyKey = document.querySelector('[data-key="*"]');
   const negateKey = document.querySelector('[data-key="negate"]');
   const historyBtn = document.getElementById('historyBtn');
   const modeBtn = document.getElementById('modeBtn');
   const minuteHand = document.getElementById('minuteHand');
+  const hintSettings = document.getElementById('hintSettings');
+  const hintSizeValue = document.getElementById('hintSizeValue');
+  const hintDecrease = document.getElementById('hintDecrease');
+  const hintIncrease = document.getElementById('hintIncrease');
+  const hintClose = document.getElementById('hintClose');
   const decimalKey = document.querySelector('[data-key="."]');
   const digitKeys = Array.from(document.querySelectorAll('.key.num')).filter((k) => /^\d$/.test(k.dataset.key));
   const signKeys = Array.from(document.querySelectorAll('.key.op')).filter((k) => k.dataset.key === '+' || k.dataset.key === '-');
@@ -23,6 +29,43 @@
   const LONG_PRESS_MS = 700;
   const STORAGE_KEY = 'calc.target';
   const MODE_STORAGE_KEY = 'calc.mode';
+  const HINT_SIZE_STORAGE_KEY = 'calc.hintSize';
+  const HINT_SETTINGS_HOLD_MS = 3000;
+  const HINT_SIZE_MIN = 1;
+  const HINT_SIZE_MAX = 12;
+  let hintSize = 1;
+  try {
+    const stored = Number(localStorage.getItem(HINT_SIZE_STORAGE_KEY));
+    if (Number.isInteger(stored) && stored >= HINT_SIZE_MIN && stored <= HINT_SIZE_MAX) {
+      hintSize = stored;
+    }
+  } catch (_error) { /* Private browsing can disable localStorage. */ }
+
+  function renderHintSize() {
+    document.documentElement.style.setProperty('--hint-size', hintSize + 'px');
+    hintSizeValue.textContent = hintSize + ' px';
+    hintDecrease.disabled = hintSize === HINT_SIZE_MIN;
+    hintIncrease.disabled = hintSize === HINT_SIZE_MAX;
+  }
+  function changeHintSize(delta) {
+    hintSize = Math.max(HINT_SIZE_MIN, Math.min(HINT_SIZE_MAX, hintSize + delta));
+    try { localStorage.setItem(HINT_SIZE_STORAGE_KEY, String(hintSize)); } catch (_error) {}
+    renderHintSize();
+  }
+  function openHintSettings() {
+    hintSettings.hidden = false;
+    hintClose.focus();
+  }
+  function closeHintSettings() {
+    hintSettings.hidden = true;
+    multiplyKey.blur();
+  }
+  hintDecrease.addEventListener('click', () => changeHintSize(-1));
+  hintIncrease.addEventListener('click', () => changeHintSize(1));
+  hintClose.addEventListener('click', closeHintSettings);
+  hintSettings.addEventListener('click', (e) => {
+    if (e.target === hintSettings) closeHintSettings();
+  });
 
   // ---------- Calculator state ----------
   // raw: the expression as entered, alternating numbers and operators, e.g. [55, '+', 6623, '+'].
@@ -717,6 +760,7 @@
   // when pointerup is cancelled while the finger moves to another key.
   // Operators and keys with long-press gestures still activate on pointerup.
   const earlyKeyPointers = new Set();
+  const multiplySettingsPointers = new Set();
   // Touch feedback calibrated from the recorded iOS calculator:
   // 150ms minimum highlight plus 100ms CSS fade, no input processing delay.
   const KEY_HIGHLIGHT_HOLD_MS = 150;
@@ -768,6 +812,7 @@
   keypad.addEventListener('click', (e) => {
     const k = e.target.closest('.key');
     if (!k) return;
+    if (!hintSettings.hidden) return;
     if (swallowClick) { swallowClick = false; return; }
     // Mobile browsers synthesize a click after pointerup. Ignore only that
     // matching click; a later real tap on the same key must still work.
@@ -782,6 +827,10 @@
   keypad.addEventListener('pointerup', (e) => {
     const k = e.target.closest && e.target.closest('.key');
     if (earlyKeyPointers.delete(e.pointerId)) return;
+    if (multiplySettingsPointers.has(e.pointerId)) {
+      rememberPointerActivation('*');
+      return;
+    }
     // The decimal key already restored its peek on the target's pointerup.
     // Consume that same gesture before the keypad can insert a decimal point.
     if (decimalPeekedPointers.delete(e.pointerId)) {
@@ -841,6 +890,53 @@
   keypad.addEventListener('pointerup', endOpPeek);
   keypad.addEventListener('pointercancel', endOpPeek);
   keypad.addEventListener('pointerleave', endOpPeek, true);
+
+// The orange multiply key keeps short-tap multiplication and its original
+  // 700ms operator peek. Holding for a full 3s opens dot-size settings instead.
+  let multiplySettingsTimer = null;
+  multiplyKey.addEventListener('pointerdown', (e) => {
+    clearTimeout(multiplySettingsTimer);
+    multiplySettingsTimer = null;
+    if (secret.armed || newTrick.active || newTrick.ready || !hintSettings.hidden) return;
+    const pointerId = e.pointerId;
+    multiplySettingsTimer = setTimeout(() => {
+      multiplySettingsTimer = null;
+      if (secret.armed || !hintSettings.hidden) return;
+      multiplySettingsPointers.add(pointerId);
+      // Restore any temporary operator peek before displaying settings.
+      clearTimeout(opPeekTimer);
+      opPeekTimer = null;
+      if (opPeeking) {
+        opPeeking = false;
+        render();
+      }
+      rememberPointerActivation('*');
+      openHintSettings();
+    }, HINT_SETTINGS_HOLD_MS);
+  });
+  const endMultiplySettings = (e) => {
+    clearTimeout(multiplySettingsTimer);
+    multiplySettingsTimer = null;
+    if (multiplySettingsPointers.has(e.pointerId)) {
+      rememberPointerActivation('*');
+      // Retain the marker through the delegated keypad pointerup handler.
+      setTimeout(() => multiplySettingsPointers.delete(e.pointerId), 0);
+    }
+  };
+  multiplyKey.addEventListener('pointerup', endMultiplySettings);
+  multiplyKey.addEventListener('pointercancel', endMultiplySettings);
+  multiplyKey.addEventListener('pointerleave', endMultiplySettings);
+  document.addEventListener('pointerup', (e) => {
+    if (multiplySettingsPointers.has(e.pointerId)) {
+      rememberPointerActivation('*');
+      setTimeout(() => multiplySettingsPointers.delete(e.pointerId), 0);
+    }
+  }, { capture: true });
+  document.addEventListener('pointercancel', (e) => {
+    multiplySettingsPointers.delete(e.pointerId);
+    clearTimeout(multiplySettingsTimer);
+    multiplySettingsTimer = null;
+  }, { capture: true });
 
   // Long-pressing the decimal key reveals the configured number; a short press
   // remains the normal decimal-point input.
@@ -990,6 +1086,10 @@
 
   // Keyboard support (handy on desktop).
   document.addEventListener('keydown', (e) => {
+    if (!hintSettings.hidden) {
+      if (e.key === 'Escape') { e.preventDefault(); closeHintSettings(); }
+      return;
+    }
     const map = { Enter: '=', '=': '=', Backspace: 'bs', Escape: 'clear', '%': 'percent', x: '*', X: '*' };
     const key = map[e.key] || e.key;
     if (/^[0-9.+\-*\/=]$/.test(key) || key === 'clear' || key === 'percent' || key === 'bs') press(key);
@@ -1003,6 +1103,7 @@
     navigator.serviceWorker.register('sw.js').catch(() => {});
   }
 
+  renderHintSize();
   loadTarget();
   render();
 
