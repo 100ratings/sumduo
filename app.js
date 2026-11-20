@@ -19,6 +19,8 @@
   const hintDecrease = document.getElementById('hintDecrease');
   const hintIncrease = document.getElementById('hintIncrease');
   const hintClose = document.getElementById('hintClose');
+  const hintDigitsTab = document.getElementById('hintDigitsTab');
+  const hintOperatorsTab = document.getElementById('hintOperatorsTab');
   const hintColorPicker = document.getElementById('hintColorPicker');
   const hintHex = document.getElementById('hintHex');
   const hintColorHelp = document.getElementById('hintColorHelp');
@@ -33,13 +35,17 @@
   const LONG_PRESS_MS = 700;
   const STORAGE_KEY = 'calc.target';
   const MODE_STORAGE_KEY = 'calc.mode';
+  // Migrate from the previously shared preferences without overwriting them.
   const HINT_SIZE_STORAGE_KEY = 'calc.hintSize';
   const HINT_COLOR_STORAGE_KEY = 'calc.hintColor';
   const HINT_SETTINGS_HOLD_MS = 3000;
   const HINT_SIZE_MIN = 1;
   const HINT_SIZE_MAX = 12;
-  let hintSize = 1;
-  let hintColor = '#515151';
+  const hintConfig = {
+    digits: { size: 1, color: '#515151', sizeKey: 'calc.hintDigitsSize', colorKey: 'calc.hintDigitsColor' },
+    operators: { size: 1, color: '#515151', sizeKey: 'calc.hintOperatorsSize', colorKey: 'calc.hintOperatorsColor' }
+  };
+  let activeHintType = 'digits';
 
   function normalizeHintHex(value) {
     const raw = String(value || '').trim().replace(/^#/, '');
@@ -48,52 +54,75 @@
     }
     return /^[0-9a-f]{6}$/i.test(raw) ? '#' + raw.toUpperCase() : null;
   }
-
+  function validHintSize(raw) {
+    const value = Number(raw);
+    return raw !== null && raw !== '' && Number.isInteger(value) &&
+      value >= HINT_SIZE_MIN && value <= HINT_SIZE_MAX ? value : null;
+  }
   try {
-    const storedSize = Number(localStorage.getItem(HINT_SIZE_STORAGE_KEY));
-    if (Number.isInteger(storedSize) && storedSize >= HINT_SIZE_MIN && storedSize <= HINT_SIZE_MAX) {
-      hintSize = storedSize;
+    const legacySize = validHintSize(localStorage.getItem(HINT_SIZE_STORAGE_KEY));
+    const legacyColor = normalizeHintHex(localStorage.getItem(HINT_COLOR_STORAGE_KEY));
+    for (const config of Object.values(hintConfig)) {
+      config.size = validHintSize(localStorage.getItem(config.sizeKey)) || legacySize || config.size;
+      config.color = normalizeHintHex(localStorage.getItem(config.colorKey)) || legacyColor || config.color;
     }
-    hintColor = normalizeHintHex(localStorage.getItem(HINT_COLOR_STORAGE_KEY)) || hintColor;
-  } catch (_error) { /* Private browsing can disable localStorage. */ }
+  } catch (_error) { /* Private browsing can restrict localStorage. */ }
 
   function renderHintSize() {
-    document.documentElement.style.setProperty('--hint-size', hintSize + 'px');
-    hintSizeValue.textContent = hintSize + ' px';
-    hintDecrease.disabled = hintSize === HINT_SIZE_MIN;
-    hintIncrease.disabled = hintSize === HINT_SIZE_MAX;
+    document.documentElement.style.setProperty('--hint-digit-size', hintConfig.digits.size + 'px');
+    document.documentElement.style.setProperty('--hint-operation-size', hintConfig.operators.size + 'px');
+    const config = hintConfig[activeHintType];
+    document.documentElement.style.setProperty('--hint-preview-size', config.size + 'px');
+    hintSizeValue.textContent = config.size + ' px';
+    hintDecrease.disabled = config.size === HINT_SIZE_MIN;
+    hintIncrease.disabled = config.size === HINT_SIZE_MAX;
   }
   function changeHintSize(delta) {
-    hintSize = Math.max(HINT_SIZE_MIN, Math.min(HINT_SIZE_MAX, hintSize + delta));
-    try { localStorage.setItem(HINT_SIZE_STORAGE_KEY, String(hintSize)); } catch (_error) {}
+    const config = hintConfig[activeHintType];
+    config.size = Math.max(HINT_SIZE_MIN, Math.min(HINT_SIZE_MAX, config.size + delta));
+    try { localStorage.setItem(config.sizeKey, String(config.size)); } catch (_error) {}
     renderHintSize();
   }
-
   function renderHintColor(updateHex = true) {
-    document.documentElement.style.setProperty('--hint-color', hintColor);
-    hintColorPicker.value = hintColor;
-    if (updateHex) hintHex.value = hintColor;
+    document.documentElement.style.setProperty('--hint-digit-color', hintConfig.digits.color);
+    document.documentElement.style.setProperty('--hint-operation-color', hintConfig.operators.color);
+    const color = hintConfig[activeHintType].color;
+    document.documentElement.style.setProperty('--hint-preview-color', color);
+    hintColorPicker.value = color;
+    if (updateHex) hintHex.value = color;
     hintHex.classList.remove('invalid');
     hintSwatches.forEach((swatch) => {
-      swatch.setAttribute('aria-pressed', String(swatch.dataset.hintColor.toUpperCase() === hintColor));
+      swatch.setAttribute('aria-pressed', String(swatch.dataset.hintColor.toUpperCase() === color));
     });
   }
   function setHintColor(input, updateHex = true) {
     const normalized = normalizeHintHex(input);
     if (!normalized) return false;
-    hintColor = normalized;
-    try { localStorage.setItem(HINT_COLOR_STORAGE_KEY, hintColor); } catch (_error) {}
+    const config = hintConfig[activeHintType];
+    config.color = normalized;
+    try { localStorage.setItem(config.colorKey, config.color); } catch (_error) {}
     hintColorHelp.textContent = '';
     renderHintColor(updateHex);
     return true;
   }
   function commitHintHex() {
     if (!setHintColor(hintHex.value)) {
-      hintHex.value = hintColor;
+      hintHex.value = hintConfig[activeHintType].color;
       hintHex.classList.remove('invalid');
     }
   }
-
+  function selectHintType(type) {
+    if (!hintConfig[type] || activeHintType === type) return;
+    commitHintHex();
+    activeHintType = type;
+    hintColorHelp.textContent = '';
+    hintDigitsTab.setAttribute('aria-pressed', String(type === 'digits'));
+    hintOperatorsTab.setAttribute('aria-pressed', String(type === 'operators'));
+    renderHintSize();
+    renderHintColor();
+  }
+  hintDigitsTab.addEventListener('click', () => selectHintType('digits'));
+  hintOperatorsTab.addEventListener('click', () => selectHintType('operators'));
   hintSwatches.forEach((swatch) => {
     swatch.addEventListener('click', () => setHintColor(swatch.dataset.hintColor));
   });
@@ -111,7 +140,6 @@
   hintHex.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); hintHex.blur(); }
   });
-
   function openHintSettings() {
     hintSettings.hidden = false;
     hintColorHelp.textContent = '';
