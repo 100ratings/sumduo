@@ -126,6 +126,27 @@
         <button id="hintIncrease" class="hint-settings-step" type="button" aria-label="Aumentar um pixel">+</button>
       </div>
       <div class="hint-settings-preview" aria-hidden="true"><span class="hint-settings-preview-dot"></span></div>
+      <div class="hint-settings-color-options">
+        <div class="hint-settings-color-title">Cor dos pontinhos</div>
+        <div class="hint-settings-swatches" role="group" aria-label="Cores rápidas">
+          <button type="button" class="hint-settings-swatch" data-hint-color="#515151" style="--swatch:#515151" aria-label="Cinza escuro"></button>
+          <button type="button" class="hint-settings-swatch" data-hint-color="#777777" style="--swatch:#777777" aria-label="Cinza"></button>
+          <button type="button" class="hint-settings-swatch" data-hint-color="#AAAAAA" style="--swatch:#AAAAAA" aria-label="Cinza claro"></button>
+          <button type="button" class="hint-settings-swatch" data-hint-color="#FFFFFF" style="--swatch:#FFFFFF" aria-label="Branco"></button>
+          <button type="button" class="hint-settings-swatch" data-hint-color="#FF9200" style="--swatch:#FF9200" aria-label="Laranja"></button>
+          <button type="button" class="hint-settings-swatch" data-hint-color="#3498DB" style="--swatch:#3498DB" aria-label="Azul"></button>
+        </div>
+        <div class="hint-settings-color-actions">
+          <label class="hint-settings-color-label" for="hintColorPicker">
+            <input type="color" id="hintColorPicker" value="#515151" aria-label="Abrir paleta de cores">
+            <span>Paleta</span>
+          </label>
+          <button id="hintEyedropper" class="hint-settings-eyedropper" type="button">Conta-gotas</button>
+        </div>
+        <label class="hint-settings-hex-label" for="hintHex">Código HEX</label>
+        <input id="hintHex" class="hint-settings-hex" type="text" inputmode="text" value="#515151" maxlength="7" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="Cor em hexadecimal">
+        <div id="hintColorHelp" class="hint-settings-help" role="status" aria-live="polite"></div>
+      </div>
       <button id="hintClose" class="hint-settings-done" type="button">Concluir</button>
     </div>
   </div>
