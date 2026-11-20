@@ -20,7 +20,6 @@
   const hintIncrease = document.getElementById('hintIncrease');
   const hintClose = document.getElementById('hintClose');
   const hintColorPicker = document.getElementById('hintColorPicker');
-  const hintEyedropper = document.getElementById('hintEyedropper');
   const hintHex = document.getElementById('hintHex');
   const hintColorHelp = document.getElementById('hintColorHelp');
   const hintSwatches = Array.from(document.querySelectorAll('[data-hint-color]'));
@@ -111,22 +110,6 @@
   hintHex.addEventListener('blur', commitHintHex);
   hintHex.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') { e.preventDefault(); hintHex.blur(); }
-  });
-
-  // Safari iOS exposes the eyedropper through its native color picker, not
-  // the desktop EyeDropper API. Use the native picker when that API is absent.
-  hintEyedropper.addEventListener('click', async () => {
-    if (typeof window.EyeDropper === 'function') {
-      try {
-        const selected = await new window.EyeDropper().open();
-        if (selected && selected.sRGBHex) setHintColor(selected.sRGBHex);
-      } catch (error) {
-        if (error.name !== 'AbortError') hintColorHelp.textContent = 'Não foi possível usar o conta-gotas';
-      }
-    } else {
-      hintColorHelp.textContent = 'Use o conta-gotas do seletor nativo, se disponível';
-      hintColorPicker.click();
-    }
   });
 
   function openHintSettings() {
