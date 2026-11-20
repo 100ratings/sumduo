@@ -118,8 +118,12 @@
   </main>
   <div id="hintSettings" class="hint-settings" role="dialog" aria-modal="true" aria-labelledby="hintSettingsTitle" hidden>
     <div class="hint-settings-panel">
-      <h2 id="hintSettingsTitle">Tamanho dos pontinhos</h2>
-      <p class="hint-settings-description">Números e operações</p>
+      <h2 id="hintSettingsTitle">Ajustes dos pontinhos</h2>
+      <p class="hint-settings-description">Tamanho e cor de cada indicador</p>
+      <div class="hint-settings-tabs" role="group" aria-label="Selecionar indicadores">
+        <button id="hintDigitsTab" class="hint-settings-tab" type="button" aria-pressed="true">Números</button>
+        <button id="hintOperatorsTab" class="hint-settings-tab" type="button" aria-pressed="false">Operações</button>
+      </div>
       <div class="hint-settings-controls">
         <button id="hintDecrease" class="hint-settings-step" type="button" aria-label="Diminuir um pixel">−</button>
         <span id="hintSizeValue" class="hint-settings-value" aria-live="polite">1 px</span>
