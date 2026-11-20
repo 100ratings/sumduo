@@ -15,8 +15,12 @@
   --top: #202020;
   --white: #ffffff;
   --rim: rgba(255, 255, 255, 0.16);
-  --hint-size: 1px;
-  --hint-color: #515151;
+  --hint-digit-size: 1px;
+  --hint-digit-color: #515151;
+  --hint-operation-size: 1px;
+  --hint-operation-color: #515151;
+  --hint-preview-size: 1px;
+  --hint-preview-color: #515151;
 
   --pad-x: calc(16 * var(--u));
   --gap-x: calc(8 * var(--u));
@@ -135,17 +139,18 @@ button svg {
   position: absolute;
   left: 50%;
   bottom: 19%;
-  width: var(--hint-size);
-  height: var(--hint-size);
+  width: var(--hint-digit-size);
+  height: var(--hint-digit-size);
   border-radius: 50%;
-  background: var(--hint-color);
+  background: var(--hint-digit-color);
   transform: translateX(-50%);
   pointer-events: none;
 }
-/* Operation hint stays legible; digit-count hint remains one pixel. */
+/* Independent operator indicator size and color. */
 .key.op.secret-count-hint::after {
-  width: var(--hint-size);
-  height: var(--hint-size);
+  width: var(--hint-operation-size);
+  height: var(--hint-operation-size);
+  background: var(--hint-operation-color);
 }
 .key.num { background: linear-gradient(160deg, var(--num) 55%, var(--num-dark)); --tap-tint: rgba(255, 255, 255, 0.27); }
 .key.fn  { background: linear-gradient(160deg, var(--fn) 45%, var(--fn-dark)); --tap-tint: rgba(255, 255, 255, 0.27); }
@@ -305,8 +310,8 @@ button svg {
     padding-bottom: 0 !important;
   }
   .key[data-key="bs"] svg { transform: translateX(-1px); }
-  .key.secret-count-hint::after { width: var(--hint-size); height: var(--hint-size); bottom: 15%; }
-  .key.op.secret-count-hint::after { width: var(--hint-size); height: var(--hint-size); }
+  .key.secret-count-hint::after { width: var(--hint-digit-size); height: var(--hint-digit-size); bottom: 15%; }
+  .key.op.secret-count-hint::after { width: var(--hint-operation-size); height: var(--hint-operation-size); }
   .display {
     top: calc(var(--land-top) - 72px);
     bottom: auto;
@@ -387,9 +392,29 @@ button svg {
   letter-spacing: -0.25px;
 }
 .hint-settings-description {
-  margin: 5px 0 16px;
+  margin: 5px 0 12px;
   font-size: 13px;
   color: #a7a7aa;
+}
+.hint-settings-tabs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 5px;
+  margin-bottom: 16px;
+  padding: 4px;
+  border-radius: 12px;
+  background: #303034;
+}
+.hint-settings-tab {
+  min-height: 39px;
+  border-radius: 9px;
+  color: #aaaab0;
+  font-size: 14px;
+  font-weight: 600;
+}
+.hint-settings-tab[aria-pressed="true"] {
+  background: #53535a;
+  color: #fff;
 }
 .hint-settings-controls {
   display: flex;
@@ -425,10 +450,10 @@ button svg {
   margin-top: 10px;
 }
 .hint-settings-preview-dot {
-  width: var(--hint-size);
-  height: var(--hint-size);
+  width: var(--hint-preview-size);
+  height: var(--hint-preview-size);
   border-radius: 50%;
-  background: var(--hint-color);
+  background: var(--hint-preview-color);
 }
 .hint-settings-done {
   display: block;
